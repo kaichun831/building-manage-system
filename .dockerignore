@@ -1,0 +1,16 @@
+.git
+.next
+node_modules
+.env.local
+.env*.local
+*.log
+README.md
+.dockerignore
+Dockerfile
+docker-compose.yml
+scripts/
+test-firebase.js
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
