@@ -9,6 +9,7 @@
     "pages:deploy": "npm run pages:build && wrangler pages deploy .vercel/output/static"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.99.3",
     "@types/nodemailer": "^7.0.11",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.6.1",

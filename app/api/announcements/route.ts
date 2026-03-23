@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db } from '@/lib/db-provider';
 import { verifyToken } from '@/lib/auth';
 
 export async function GET() {
@@ -15,11 +15,6 @@ export async function POST(req: NextRequest) {
   if (!payload) return NextResponse.json({ error: '無效的 token' }, { status: 401 });
 
   const { title, content } = await req.json();
-  const announcement = await db.announcements.push({
-    title,
-    content,
-    createdAt: new Date()
-  });
-
+  const announcement = await db.announcements.push({ title, content, createdAt: new Date() });
   return NextResponse.json(announcement);
 }

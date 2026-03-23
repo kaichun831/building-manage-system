@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
 
     const bucket = getAdminStorage();
     const fileRef = bucket.file(filename);
-
     await fileRef.save(buffer, { metadata: { contentType: file.type } });
     await fileRef.makePublic();
 

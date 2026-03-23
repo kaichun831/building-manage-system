@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db } from '@/lib/db-provider';
 import { verifyToken } from '@/lib/auth';
 
 export async function GET() {
@@ -31,6 +31,5 @@ export async function POST(req: NextRequest) {
     receipt
   });
 
-  // 回傳時將 date 轉為 ISO string，前端可直接 new Date() 解析
   return NextResponse.json({ ...record, date });
 }

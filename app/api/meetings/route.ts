@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db } from '@/lib/db-provider';
 import { verifyToken } from '@/lib/auth';
 
 export async function GET() {
@@ -15,13 +15,6 @@ export async function POST(req: NextRequest) {
   if (!payload) return NextResponse.json({ error: '無效的 token' }, { status: 401 });
 
   const { title, date, agenda, minutes, attendees } = await req.json();
-  const meeting = await db.meetings.push({
-    title,
-    date: new Date(date),
-    agenda,
-    minutes,
-    attendees
-  });
-
+  const meeting = await db.meetings.push({ title, date: new Date(date), agenda, minutes, attendees });
   return NextResponse.json(meeting);
 }
