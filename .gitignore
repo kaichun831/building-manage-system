@@ -1,0 +1,14 @@
+node_modules
+.next
+.vercel
+.env.local
+*.log
+
+# Firebase service account keys
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+
+# Test files
+test-firebase.js
