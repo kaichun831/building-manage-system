@@ -1,6 +1,6 @@
 # 大廈管理委員會系統
 
-> 基於 Next.js 15 + Firebase 的全端大廈管理平台，支援住戶管理、議題提報、公告、會議紀錄、財務管理等功能。
+> 基於 Next.js 15 + Firebase / Supabase 的全端大廈管理平台，支援住戶管理、議題提報、公告、會議紀錄、財務管理等功能。
 
 ---
 
@@ -15,7 +15,7 @@
 | 👥 住戶成員 | 住戶列表（本人置頂）、個人資料編輯、管理員可刪除住戶 |
 | 📅 會議紀錄 | 新增／編輯會議，出席者多選（含全選），列表顯示出席 tag |
 | 💰 財務管理 | 支出紀錄、收據圖片上傳（自動壓縮）、作廢功能（需填原因）、統計卡片 |
-| 📝 操作日誌 | 管理員所有異動操作自動寫入 Firebase `logs` collection |
+| 📝 操作日誌 | 管理員所有異動操作自動寫入 `logs` collection |
 
 ---
 
@@ -23,12 +23,12 @@
 
 - **前端**: React 18 + Next.js 15 (App Router)
 - **後端**: Next.js API Routes (Server-side)
-- **資料庫**: Firebase Firestore
-- **儲存**: Firebase Storage（收據圖片）
+- **資料庫**: Firebase Firestore 或 Supabase（透過 `DB_PROVIDER` 切換）
+- **圖片儲存**: Firebase Storage 或 AWS S3（透過 `UPLOAD_PROVIDER` 切換）
 - **認證**: JWT（jose）+ bcryptjs 密碼雜湊
-- **Email**: Nodemailer（忘記密碼寄信）
+- **Email**: AWS SES（忘記密碼寄信）
 - **樣式**: Tailwind CSS
-- **部署**: Cloudflare Pages
+- **部署**: Docker + AWS EC2 + Cloudflare（DNS / HTTPS）
 
 ---
 
@@ -42,62 +42,95 @@ npm install
 
 ### 2. 設定環境變數
 
-複製以下內容建立 `.env.local`：
-
-```env
-# JWT
-JWT_SECRET=your-secret-key-min-32-chars
-
-# Firebase Client（前端用）
-NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
-NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
-
-# Firebase Admin（後端用）
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour-Private-Key\n-----END PRIVATE KEY-----\n"
-
-# SMTP 郵件（忘記密碼功能）
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-
-# 系統網址（重設密碼連結用）
-NEXT_PUBLIC_BASE_URL=https://your-domain.com
+```bash
+cp .env.sample .env.local
+# 編輯 .env.local 填入實際值
 ```
 
-### 3. Firebase 設定
+### 3. 初始化資料庫
 
-1. 前往 [Firebase Console](https://console.firebase.google.com/) 建立專案
-2. 啟用 **Firestore Database**
-3. 啟用 **Storage**
-4. 在「專案設定 > 一般」取得 Web 應用程式配置（填入 `NEXT_PUBLIC_*`）
-5. 在「專案設定 > 服務帳戶」產生私密金鑰（填入 `FIREBASE_*`）
-
-### 4. 初始化資料庫
-
+**Firebase：**
 ```bash
 node scripts/init-firebase.js
 ```
 
-此指令會建立：
+**Supabase：**
+```bash
+# 先在 Supabase SQL Editor 執行 scripts/supabase-schema.sql
+node scripts/init-supabase.js
+```
+
+兩個指令都會建立：
 - ✅ 管理員帳號（帳號：`admin` / 密碼：`password`）
-- ✅ 初始主委資料（若不存在）
-- ✅ 歡迎公告（若不存在）
+- ✅ 歡迎公告
 
 > ⚠️ **請於首次登入後立即修改 admin 密碼**
 
-### 5. 啟動開發伺服器
+### 4. 啟動開發伺服器
 
 ```bash
 npm run dev
 ```
+
+---
+
+## 環境變數說明
+
+完整範本請參考 `.env.sample`，以下為各區塊說明：
+
+### JWT
+| 變數 | 說明 |
+|------|------|
+| `JWT_SECRET` | 至少 32 字元的隨機字串 |
+
+### Firebase Client（前端）
+| 變數 | 說明 |
+|------|------|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase 專案 API Key |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Auth Domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase 專案 ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Storage Bucket |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Sender ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase App ID |
+
+### Firebase Admin（後端）
+| 變數 | 說明 |
+|------|------|
+| `FIREBASE_PROJECT_ID` | Firebase 專案 ID |
+| `FIREBASE_CLIENT_EMAIL` | 服務帳戶 Email |
+| `FIREBASE_PRIVATE_KEY` | 服務帳戶私鑰 |
+
+### 資料庫切換
+| 變數 | 值 | 說明 |
+|------|-----|------|
+| `DB_PROVIDER` | `firebase`（預設）| 使用 Firebase Firestore |
+| `DB_PROVIDER` | `supabase` | 使用 Supabase |
+| `SUPABASE_URL` | — | Supabase 專案 URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | — | Supabase Service Role Key |
+
+### 圖片上傳切換
+| 變數 | 值 | 說明 |
+|------|-----|------|
+| `UPLOAD_PROVIDER` | `firebase`（預設）| 上傳至 Firebase Storage |
+| `UPLOAD_PROVIDER` | `s3` | 上傳至 AWS S3 |
+| `AWS_S3_REGION` | — | S3 Bucket 所在區域 |
+| `AWS_S3_BUCKET` | — | S3 Bucket 名稱 |
+| `AWS_S3_ACCESS_KEY_ID` | — | IAM Access Key ID |
+| `AWS_S3_SECRET_ACCESS_KEY` | — | IAM Secret Access Key |
+| `AWS_CLOUDFRONT_URL` | — | CloudFront CDN URL（選填） |
+
+### AWS SES（郵件）
+| 變數 | 說明 |
+|------|------|
+| `AWS_SES_REGION` | SES 所在區域（建議 `ap-northeast-1`） |
+| `AWS_SES_ACCESS_KEY_ID` | IAM Access Key ID |
+| `AWS_SES_SECRET_ACCESS_KEY` | IAM Secret Access Key |
+| `AWS_SES_FROM_EMAIL` | 寄件人 Email（需在 SES 驗證網域） |
+
+### 系統網址
+| 變數 | 說明 |
+|------|------|
+| `NEXT_PUBLIC_BASE_URL` | 系統對外網址，用於重設密碼信件連結 |
 
 ---
 
@@ -161,26 +194,7 @@ npm run dev
 | PUT/DELETE/PATCH | `/api/finance/[id]` | 編輯／刪除／作廢（admin） |
 | GET | `/api/members` | 住戶列表（需登入） |
 | PUT/DELETE | `/api/members/[id]` | 更新資料／刪除住戶 |
-| POST | `/api/upload` | 上傳圖片至 Firebase Storage |
-
----
-
-## 建置與部署
-
-```bash
-# 建置
-npm run build
-
-# 部署到 Cloudflare Pages
-npm run pages:build
-npm run pages:deploy
-```
-
-### Cloudflare Pages 設定
-
-1. 安裝 Wrangler CLI：`npm install -g wrangler`
-2. 登入：`wrangler login`
-3. 在 Cloudflare Dashboard 設定所有環境變數（同 `.env.local`）
+| POST | `/api/upload` | 上傳圖片（Firebase Storage 或 S3） |
 
 ---
 
@@ -196,7 +210,7 @@ npm run pages:deploy
 │   │   ├── issues/
 │   │   ├── meetings/
 │   │   ├── members/
-│   │   └── upload/
+│   │   └── upload/       # 圖片上傳（Firebase / S3）
 │   ├── dashboard/
 │   ├── finance/
 │   ├── issues/
@@ -210,20 +224,35 @@ npm run pages:deploy
 │   └── Navbar.tsx
 ├── lib/
 │   ├── auth.ts           # JWT + bcrypt
-│   ├── db.ts             # Firestore CRUD
+│   ├── db.ts             # Firebase Firestore CRUD
+│   ├── db-supabase.ts    # Supabase CRUD
+│   ├── db-provider.ts    # 資料庫切換（DB_PROVIDER）
 │   ├── firebase.ts       # 客戶端 Firebase
-│   ├── mailer.ts         # Nodemailer
+│   ├── mailer.ts         # AWS SES 寄信
 │   └── useAuth.ts        # 客戶端 Auth Hook
 ├── scripts/
-│   └── init-firebase.js  # 初始化腳本
-└── types/
-    └── index.ts          # TypeScript 型別定義
+│   ├── init-firebase.js  # Firebase 初始化
+│   ├── init-supabase.js  # Supabase 初始化
+│   └── supabase-schema.sql # Supabase 資料表 Schema
+├── types/
+│   └── index.ts          # TypeScript 型別定義
+├── .env.sample           # 環境變數範本
+├── Dockerfile            # Docker 打包設定
+├── docker-compose.yml    # Docker Compose 設定
+└── DEPLOYMENT.md         # 完整部署指南
 ```
+
+---
+
+## 部署
+
+Docker 打包與 AWS EC2 + Cloudflare 完整部署流程請參考 **[DEPLOYMENT.md](./DEPLOYMENT.md)**。
 
 ---
 
 ## 注意事項
 
 - `.env.local` 及 Firebase 私鑰 JSON 已加入 `.gitignore`，**請勿提交至版本控制**
-- 首次部署後請執行 `node scripts/init-firebase.js` 初始化資料
-- Gmail SMTP 需使用「應用程式密碼」而非帳號密碼
+- 複製 `.env.sample` 為 `.env.local` 後填入實際值
+- 首次部署後執行對應的初始化腳本建立 admin 帳號
+- AWS SES 預設為 Sandbox 模式，需申請 Production Access 才能寄信給任意信箱
